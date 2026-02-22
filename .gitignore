@@ -1,8 +1,26 @@
 # Python
 backend/venv/
 backend/__pycache__/
+backend/.idea
 backend/*.db
 backend/.env
+backend/thumbnails/
+backend/uploads/
+backend/.mypy_cache/
+backend/.pytest_cache/
+backend/.coverage
+backend/.pylint.d/
+backend/*.pyc
+backend/*.pyo
+backend/*.pyd
+
+# Python - recursive pycache (catches all subdirectories)
+**/__pycache__/
+**/*.pyc
+
+# HuggingFace model weights (very large, download at runtime)
+*.safetensors
+*.bin
 
 # Logs
 frontend/logs
@@ -29,6 +47,13 @@ frontend/*.njsproj
 frontend/*.sln
 frontend/*.sw?
 
-# Models 
-*.bin
-*.safetensors
+# OS-specific files
+.DS_Store
+Thumbs.db
+
+# IDE-specific files
+.vscode/
+.idea/
+*.iml
+*.sublime-workspace
+*.sublime-project
