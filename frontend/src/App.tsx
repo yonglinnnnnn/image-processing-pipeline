@@ -1,31 +1,14 @@
-import { useState, useRef } from "react";
+import { useState } from "react";
 import axios from "axios";
-import "./App.css";
+import { ImageIcon } from "lucide-react";
+import { UploadCard } from "@/components/UploadCard";
+import { ImageList } from "@/components/ImageList";
+import type { ImageRecord } from "@/types";
 
 const API_BASE = "http://localhost:8000/api";
 
-interface ImageRecord {
-  status: string;
-  data: {
-    image_id: string;
-    original_name: string;
-    processed_at: string | null;
-    metadata: {
-      width?: number;
-      height?: number;
-      format?: string;
-      size_bytes?: number;
-      caption?: string;
-    };
-    thumbnails: {
-      small?: string;
-      medium?: string;
-    };
-  };
-  error: string | null;
-}
-
 export default function App() {
+  // Upload state
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -33,10 +16,11 @@ export default function App() {
     image_id: string;
     status: string;
   } | null>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+
+  // Image list state
   const [images, setImages] = useState<ImageRecord[]>([]);
   const [loadingImages, setLoadingImages] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = e.target.files?.[0];
@@ -44,39 +28,24 @@ export default function App() {
     setFile(selected);
     setPreview(URL.createObjectURL(selected));
     setUploadResult(null);
-    setError(null);
+    setUploadError(null);
   };
 
   const handleUpload = async () => {
     if (!file) return;
     setUploading(true);
-    setError(null);
-
+    setUploadError(null);
     const formData = new FormData();
     formData.append("file", file);
-
     try {
       const res = await axios.post(`${API_BASE}/images`, formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
       setUploadResult(res.data);
-    } catch (err) {
-      setError("Upload failed. Is the backend running?");
+    } catch {
+      setUploadError("Upload failed. Is the backend running?");
     } finally {
       setUploading(false);
-    }
-  };
-
-  const handleFetchImages = async () => {
-    setLoadingImages(true);
-    setError(null);
-    try {
-      const res = await axios.get(`${API_BASE}/images`);
-      setImages(res.data);
-    } catch {
-      setError("Failed to fetch images.");
-    } finally {
-      setLoadingImages(false);
     }
   };
 
@@ -84,124 +53,54 @@ export default function App() {
     setFile(null);
     setPreview(null);
     setUploadResult(null);
-    setError(null);
-    if (fileInputRef.current) fileInputRef.current.value = "";
+    setUploadError(null);
+  };
+
+  const handleFetchImages = async () => {
+    setLoadingImages(true);
+    try {
+      const res = await axios.get(`${API_BASE}/images`);
+      setImages(res.data);
+    } catch {
+      // errors handled inside ImageList aren't needed here,
+      // but you could lift them up if you want a global error banner
+    } finally {
+      setLoadingImages(false);
+    }
   };
 
   return (
-    <div className="app">
-      <h1>Image Processing Pipeline</h1>
-
-      {/* Upload Section */}
-      <div className="card">
-        <h2>Upload Image</h2>
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept=".jpg,.jpeg,.png"
-          onChange={handleFileChange}
-        />
-
-        {preview && (
-          <div className="preview">
-            <img src={preview} alt="Preview" />
-            <p>{file?.name}</p>
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-2xl mx-auto px-4 py-10">
+        {/* Header */}
+        <div className="mb-8 text-center">
+          <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-indigo-600 text-white mb-4">
+            <ImageIcon className="w-6 h-6" />
           </div>
-        )}
-
-        <div className="button-row">
-          <button onClick={handleUpload} disabled={!file || uploading}>
-            {uploading ? "Uploading..." : "Upload"}
-          </button>
-          {file && <button onClick={handleReset}>Reset</button>}
+          <h1 className="text-2xl font-bold text-gray-900">
+            Image Processing Pipeline
+          </h1>
+          <p className="text-sm text-gray-500 mt-1">
+            Upload images for background processing and thumbnail generation
+          </p>
         </div>
 
-        {uploadResult && (
-          <div className="result success">
-            <p>Queued for processing!</p>
-            <p>
-              <strong>ID:</strong> {uploadResult.image_id}
-            </p>
-            <p>
-              <strong>Status:</strong> {uploadResult.status}
-            </p>
-            <p className="hint">
-              Processing happens in the background. Fetch all images below to
-              check when it's done.
-            </p>
-          </div>
-        )}
+        <UploadCard
+          file={file}
+          preview={preview}
+          uploading={uploading}
+          uploadResult={uploadResult}
+          error={uploadError}
+          onFileChange={handleFileChange}
+          onUpload={handleUpload}
+          onReset={handleReset}
+        />
 
-        {error && <div className="result error">{error}</div>}
-      </div>
-
-      {/* Image List Section */}
-      <div className="card">
-        <h2>Processed Images</h2>
-        <button onClick={handleFetchImages} disabled={loadingImages}>
-          {loadingImages ? "Loading..." : "Fetch All Images"}
-        </button>
-
-        {images.length > 0 && (
-          <div className="image-list">
-            {images.map((img) => (
-              <div
-                key={img.data.image_id}
-                className={`image-card ${img.status}`}
-              >
-                <div className="image-header">
-                  <span className={`badge ${img.status}`}>{img.status}</span>
-                  <strong>{img.data.original_name}</strong>
-                </div>
-                <p className="image-id">ID: {img.data.image_id}</p>
-
-                {img.status === "success" && (
-                  <>
-                    <div className="meta">
-                      <span>
-                        {img.data.metadata.width}×{img.data.metadata.height}
-                      </span>
-                      <span>{img.data.metadata.format?.toUpperCase()}</span>
-                      <span>
-                        {img.data.metadata.size_bytes
-                          ? (img.data.metadata.size_bytes / 1024).toFixed(1) +
-                            " KB"
-                          : ""}
-                      </span>
-                    </div>
-                    {img.data.metadata.caption && (
-                      <p className="caption">{img.data.metadata.caption}</p>
-                    )}
-                    <div className="thumbnails">
-                      {img.data.thumbnails.small && (
-                        <img
-                          src={img.data.thumbnails.small}
-                          alt="small thumbnail"
-                          title="Small"
-                        />
-                      )}
-                      {img.data.thumbnails.medium && (
-                        <img
-                          src={img.data.thumbnails.medium}
-                          alt="medium thumbnail"
-                          title="Medium"
-                        />
-                      )}
-                    </div>
-                  </>
-                )}
-
-                {img.status === "failed" && (
-                  <p className="error-msg">Error: {img.error}</p>
-                )}
-
-                {img.status === "processing" && (
-                  <p className="processing-msg">⏳ Still processing...</p>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
+        <ImageList
+          images={images}
+          loading={loadingImages}
+          onFetch={handleFetchImages}
+        />
       </div>
     </div>
   );
