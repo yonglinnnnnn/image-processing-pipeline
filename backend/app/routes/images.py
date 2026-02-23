@@ -20,10 +20,11 @@ async def upload_image(background_tasks: BackgroundTasks, file: UploadFile = Fil
     ext = file.filename.rsplit(".", 1)[-1].lower() if "." in file.filename else ""
     if ext not in ALLOWED_FORMATS:
         image_id = str(uuid.uuid4())[:8]
+        processed_at = datetime.now(timezone.utc).isoformat()
         conn = get_connection()
         conn.execute(
-            "INSERT INTO images (id, original_name, status, error) VALUES (?, ?, 'failed', ?)",
-            (image_id, file.filename, "invalid file format")
+            "INSERT INTO images (id, original_name, status, error, processed_at) VALUES (?, ?, 'failed', ?, ?)",
+            (image_id, file.filename, "invalid file format", processed_at)
         )
         conn.commit()
         conn.close()
