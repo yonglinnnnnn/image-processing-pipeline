@@ -30,7 +30,6 @@ image-processing-pipeline/
     ├── src/
     │   ├── components/
     │   │   ├── ui/              # shadcn/ui base components
-    │   │   ├── ImageList.tsx    # Displays all processed images
     │   │   ├── Lightbox.tsx     # Full-screen thumbnail viewer
     │   │   ├── StatusBadge.tsx  # Success/failed/processing badge
     │   │   └── UploadCard.tsx   # File upload UI
@@ -63,7 +62,7 @@ python -m venv venv
 source venv/bin/activate        # On Windows: venv\Scripts\activate
 
 # Install dependencies
-pip install fastapi uvicorn pillow transformers torch
+pip install -r requirements.txt
 
 # Start the server
 uvicorn main:app --reload --port 8000
@@ -83,43 +82,31 @@ npm run dev
 
 The frontend will be available at `http://localhost:5173`.
 
-The React app provides:
+The React app features a 3-column layout:
 
-- **Upload Card** — drag-and-drop style file picker with image preview, supporting JPG/JPEG/PNG
-- **Image List** — fetches and displays all processed images with status badges, metadata, AI captions, and clickable thumbnail previews
-- **Lightbox** — full-screen thumbnail viewer with keyboard navigation (arrow keys, Escape) and a thumbnail strip for switching between small/medium sizes
-
----
-
-## Processing Pipeline
-
-When an image is uploaded, the following steps occur asynchronously in the background:
-
-1. **Validation** — The file extension is checked against the allowed formats (JPG, PNG). Invalid files are immediately rejected and logged.
-2. **Storage** — The original image is saved to the `uploads/` directory.
-3. **Metadata Extraction** — Width, height, format, and file size are extracted using Pillow.
-4. **EXIF Extraction** — EXIF tags are read from the image (if present) and stored as JSON.
-5. **Thumbnail Generation** — Two thumbnails are created using `Image.thumbnail()` with LANCZOS resampling:
-   - `small`: 150×150 px
-   - `medium`: 400×400 px
-6. **AI Captioning** — The image is passed through the BLIP large captioning model to generate a natural language description.
-7. **Database Update** — All results (metadata, caption, EXIF, processing time) are written to SQLite. The image status is updated to `success` or `failed`.
+- **Upload panel (left)** — file picker with image preview, supporting JPG/JPEG/PNG. Shows immediate feedback on upload status.
+- **Image list (middle)** — displays all processed images with thumbnail previews and status badges. Click any entry to view its details.
+- **Detail panel (right)** — shows the selected image's thumbnails, AI caption, and full raw JSON response. Click thumbnails to open the lightbox.
+- **Lightbox** — full-screen thumbnail viewer with keyboard navigation (arrow keys, Escape) and a thumbnail strip for switching between small/medium sizes.
 
 ---
 
 ## Processing Pipeline
 
-When an image is uploaded, the following steps occur asynchronously in the background:
+When an image is uploaded, the following steps occur:
 
-1. **Validation** — The file extension is checked against the allowed formats (JPG, PNG). Invalid files are immediately rejected and logged.
+1. **Extension Validation** — The file extension is checked against the allowed formats (JPG, JPEG, PNG). Invalid extensions are immediately rejected with a `failed` status and a `processed_at` timestamp.
 2. **Storage** — The original image is saved to the `uploads/` directory.
-3. **Metadata Extraction** — Width, height, format, and file size are extracted using Pillow.
-4. **EXIF Extraction** — EXIF tags are read from the image (if present) and stored as JSON.
-5. **Thumbnail Generation** — Two thumbnails are created using `Image.thumbnail()` with LANCZOS resampling:
+3. **Format Validation** — Pillow reads the actual file format to catch mismatches (e.g. a WebP file renamed to `.jpg`). Invalid files are rejected, cleaned up from disk, and recorded as `failed`.
+4. **Metadata Extraction** — Width, height, format, and file size are extracted using Pillow.
+5. **EXIF Extraction** — EXIF tags are read from the image (if present) and stored as JSON.
+6. **Thumbnail Generation** — Two thumbnails are created using `Image.thumbnail()` with LANCZOS resampling:
    - `small`: 150×150 px
    - `medium`: 400×400 px
-6. **AI Captioning** — The image is passed through the BLIP large captioning model to generate a natural language description.
-7. **Database Update** — All results (metadata, caption, EXIF, processing time) are written to SQLite. The image status is updated to `success` or `failed`.
+7. **AI Captioning** — The image is passed through the BLIP large captioning model to generate a natural language description.
+8. **Database Update** — All results (metadata, caption, EXIF, processing time) are written to SQLite. The image status is updated to `success` or `failed`.
+
+Steps 4–8 run asynchronously in the background via FastAPI's `BackgroundTasks`. The upload endpoint returns immediately with the image ID and a `processing` status.
 
 ---
 
@@ -318,6 +305,7 @@ pytest tests/
 ## Notes
 
 - Supported upload formats: **JPG, PNG**
-- Images are processed asynchronously using FastAPI's `BackgroundTasks`. Poll `GET /api/images/{id}` to check when status changes from `processing` to `success` or `failed`.
+- File format is validated twice — once by extension, and again by Pillow reading the actual file content, preventing misnamed files from slipping through.
+- Failed uploads receive a `processed_at` timestamp immediately at the time of rejection.
 - The BLIP captioning model requires a working internet connection on first run to download model weights (~1.8 GB).
 - All logs are structured with timestamps and log levels via Python's `logging` module.
