@@ -317,7 +317,7 @@ pytest tests/
 
 ## Notes
 
-- Supported upload formats: **JPG, JPEG, PNG**
+- Supported upload formats: **JPG, PNG**
 - Images are processed asynchronously using FastAPI's `BackgroundTasks`. Poll `GET /api/images/{id}` to check when status changes from `processing` to `success` or `failed`.
 - The BLIP captioning model requires a working internet connection on first run to download model weights (~1.8 GB).
 - All logs are structured with timestamps and log levels via Python's `logging` module.

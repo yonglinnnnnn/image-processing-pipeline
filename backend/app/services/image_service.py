@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 UPLOAD_DIR = "uploads"
 THUMBNAIL_DIR = "thumbnails"
-ALLOWED_FORMATS = {"jpg", "jpeg", "png"}
+ALLOWED_FORMATS = {"jpg", "png"}
 THUMBNAIL_SIZES = {
     "small": (150, 150),
     "medium": (400, 400),

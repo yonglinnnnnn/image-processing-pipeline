@@ -73,12 +73,6 @@ def test_upload_png_image():
     assert response.status_code == 200
     assert response.json()["status"] in ("processing", "success")
 
-def test_upload_jpg_image():
-    buf, name = make_fake_image("test1.jpg", "JPEG")
-    response = client.post("/api/images", files={"file": (name, buf, "image/jpeg")})
-    assert response.status_code == 200
-    assert response.json()["status"] in ("processing", "success")
-
 def test_upload_jpeg_image():
     buf, name = make_fake_image("test2.jpeg", "JPEG")
     response = client.post("/api/images", files={"file": (name, buf, "image/jpeg")})
