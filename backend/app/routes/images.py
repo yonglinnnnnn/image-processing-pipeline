@@ -9,6 +9,7 @@ from app.services.image_service import (
     process_image, get_image_record, get_all_images,
     format_response, UPLOAD_DIR, THUMBNAIL_DIR, ALLOWED_FORMATS
 )
+from PIL import Image as PILImage
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -16,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 @router.post("/images")
 async def upload_image(background_tasks: BackgroundTasks, file: UploadFile = File(...)):
-    # Validate format
+    # Validate extension
     ext = file.filename.rsplit(".", 1)[-1].lower() if "." in file.filename else ""
     if ext not in ALLOWED_FORMATS:
         image_id = str(uuid.uuid4())[:8]
@@ -38,6 +39,24 @@ async def upload_image(background_tasks: BackgroundTasks, file: UploadFile = Fil
     with open(file_path, "wb") as f:
         f.write(contents)
 
+    # Validate actual file format using Pillow
+    try:
+        with PILImage.open(file_path) as img:
+            real_fmt = img.format.lower() if img.format else ""
+            if real_fmt not in ("jpeg", "png"):
+                raise ValueError(f"Unsupported image format: {real_fmt}")
+    except Exception:
+        os.remove(file_path)
+        processed_at = datetime.now(timezone.utc).isoformat()
+        conn = get_connection()
+        conn.execute(
+            "INSERT INTO images (id, original_name, status, error, processed_at) VALUES (?, ?, 'failed', ?, ?)",
+            (image_id, file.filename, "invalid file format", processed_at)
+        )
+        conn.commit()
+        conn.close()
+        return {"image_id": image_id, "status": "failed", "error": "invalid file format"}
+
     # Insert pending record
     conn = get_connection()
     conn.execute(
@@ -52,7 +71,6 @@ async def upload_image(background_tasks: BackgroundTasks, file: UploadFile = Fil
     logger.info(f"Image {image_id} queued for processing")
 
     return {"image_id": image_id, "status": "processing"}
-
 
 @router.get("/images")
 async def list_images():

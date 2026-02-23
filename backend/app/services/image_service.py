@@ -118,8 +118,13 @@ def process_image(image_id: str, file_path: str, original_name: str):
         logger.info(f"Processing image {image_id}: {original_name}")
 
         img = Image.open(file_path)
-        width, height = img.size
         fmt = img.format.lower() if img.format else original_name.rsplit(".", 1)[-1].lower()
+
+        # Validate actual file format, not just extension
+        if fmt not in ("jpeg", "png"):
+            raise ValueError(f"Unsupported image format: {fmt}")
+
+        width, height = img.size
         size_bytes = os.path.getsize(file_path)
         exif_data = extract_exif(img)
 
