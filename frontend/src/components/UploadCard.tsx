@@ -1,7 +1,4 @@
 import { useRef } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Upload, RefreshCw, CheckCircle2, AlertCircle } from "lucide-react";
 
 interface UploadResult {
@@ -38,123 +35,121 @@ export function UploadCard({
   };
 
   return (
-    <Card className="mb-6 shadow-sm">
-      <CardHeader className="pb-3">
-        <CardTitle className="text-base font-semibold">Upload Image</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {/* Drop zone */}
-        <label
-          htmlFor="file-input"
-          className={`flex flex-col items-center justify-center w-full h-36 border-2 border-dashed rounded-xl cursor-pointer transition-colors
-            ${
-              file
-                ? "border-indigo-400 bg-indigo-50"
-                : "border-gray-200 bg-gray-50 hover:bg-gray-100 hover:border-gray-300"
-            }`}
-        >
-          <Upload
-            className={`w-7 h-7 mb-2 ${
-              file ? "text-indigo-500" : "text-gray-400"
-            }`}
-          />
-          {file ? (
-            <span className="text-sm font-medium text-indigo-600">
-              {file.name}
+    <div className="space-y-3">
+      {/* Drop zone */}
+      <label
+        htmlFor="file-input"
+        className={`flex flex-col items-center justify-center w-full h-36 border-2 border-dashed rounded-xl cursor-pointer transition-all
+          ${
+            file
+              ? "border-violet-500 bg-violet-950/30"
+              : "border-slate-700 bg-slate-800/30 hover:bg-slate-800/50 hover:border-slate-600"
+          }`}
+      >
+        <Upload
+          className={`w-6 h-6 mb-2 ${
+            file ? "text-violet-400" : "text-slate-500"
+          }`}
+        />
+        {file ? (
+          <span className="text-sm font-medium text-violet-300 px-4 text-center truncate max-w-full">
+            {file.name}
+          </span>
+        ) : (
+          <>
+            <span className="text-sm font-medium text-slate-400">
+              Click to upload
             </span>
+            <span className="text-xs text-slate-600 mt-0.5">
+              JPG, JPEG, PNG
+            </span>
+          </>
+        )}
+        <input
+          id="file-input"
+          ref={fileInputRef}
+          type="file"
+          accept=".jpg,.jpeg,.png"
+          onChange={onFileChange}
+          className="hidden"
+        />
+      </label>
+
+      {/* Preview */}
+      {preview && (
+        <div className="flex items-center gap-3 p-3 bg-slate-800/50 rounded-xl border border-slate-700">
+          <img
+            src={preview}
+            alt="Preview"
+            className="w-12 h-12 object-cover rounded-lg border border-slate-600 shrink-0"
+          />
+          <div className="min-w-0">
+            <p className="text-xs font-medium text-slate-200 truncate">
+              {file?.name}
+            </p>
+            <p className="text-xs text-slate-500 mt-0.5 font-mono">
+              {file ? (file.size / 1024).toFixed(1) + " KB" : ""}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Actions */}
+      <div className="flex gap-2">
+        <button
+          onClick={onUpload}
+          disabled={!file || uploading}
+          className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all
+            bg-violet-600 hover:bg-violet-500 text-white
+            disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-violet-600"
+        >
+          {uploading ? (
+            <>
+              <RefreshCw className="w-4 h-4 animate-spin" />
+              Uploading...
+            </>
           ) : (
             <>
-              <span className="text-sm font-medium text-gray-600">
-                Click to upload
-              </span>
-              <span className="text-xs text-gray-400 mt-0.5">
-                JPG, JPEG, PNG supported
-              </span>
+              <Upload className="w-4 h-4" />
+              Upload
             </>
           )}
-          <input
-            id="file-input"
-            ref={fileInputRef}
-            type="file"
-            accept=".jpg,.jpeg,.png"
-            onChange={onFileChange}
-            className="hidden"
-          />
-        </label>
-
-        {/* Preview */}
-        {preview && (
-          <div className="flex items-center gap-4 p-3 bg-gray-50 rounded-lg border border-gray-100">
-            <img
-              src={preview}
-              alt="Preview"
-              className="w-16 h-16 object-cover rounded-lg border border-gray-200 flex-shrink-0"
-            />
-            <div className="min-w-0">
-              <p className="text-sm font-medium text-gray-800 truncate">
-                {file?.name}
-              </p>
-              <p className="text-xs text-gray-500 mt-0.5">
-                {file ? (file.size / 1024).toFixed(1) + " KB" : ""}
-              </p>
-            </div>
-          </div>
-        )}
-
-        {/* Actions */}
-        <div className="flex gap-2">
-          <Button
-            onClick={onUpload}
-            disabled={!file || uploading}
-            className="bg-indigo-600 hover:bg-indigo-700 text-white flex-1"
+        </button>
+        {file && (
+          <button
+            onClick={handleReset}
+            className="px-4 py-2.5 rounded-xl text-sm font-medium text-slate-400 border border-slate-700 hover:border-slate-600 hover:text-slate-300 transition-all"
           >
-            {uploading ? (
-              <>
-                <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                Uploading...
-              </>
-            ) : (
-              <>
-                <Upload className="w-4 h-4 mr-2" />
-                Upload
-              </>
-            )}
-          </Button>
-          {file && (
-            <Button
-              variant="outline"
-              onClick={handleReset}
-              className="flex-shrink-0"
-            >
-              Reset
-            </Button>
-          )}
+            Reset
+          </button>
+        )}
+      </div>
+
+      {/* Success */}
+      {uploadResult && (
+        <div className="flex items-start gap-3 p-3 bg-emerald-950/40 border border-emerald-800/50 rounded-xl">
+          <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+          <div>
+            <p className="text-xs font-medium text-emerald-300">
+              Queued for processing!
+            </p>
+            <p className="text-xs font-mono text-emerald-500 mt-0.5">
+              ID: {uploadResult.image_id}
+            </p>
+            <p className="text-xs text-emerald-600 mt-0.5">
+              Refresh the list to check status.
+            </p>
+          </div>
         </div>
+      )}
 
-        {/* Success alert */}
-        {uploadResult && (
-          <Alert className="border-emerald-200 bg-emerald-50">
-            <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-            <AlertDescription className="text-emerald-800">
-              <p className="font-medium">Queued for processing!</p>
-              <p className="text-xs mt-1 font-mono text-emerald-700">
-                ID: {uploadResult.image_id}
-              </p>
-              <p className="text-xs text-emerald-600 mt-1">
-                Fetch images below to check when processing is complete.
-              </p>
-            </AlertDescription>
-          </Alert>
-        )}
-
-        {/* Error alert */}
-        {error && (
-          <Alert variant="destructive">
-            <AlertCircle className="w-4 h-4" />
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
-      </CardContent>
-    </Card>
+      {/* Error */}
+      {error && (
+        <div className="flex items-start gap-3 p-3 bg-red-950/40 border border-red-800/50 rounded-xl">
+          <AlertCircle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
+          <p className="text-xs text-red-300">{error}</p>
+        </div>
+      )}
+    </div>
   );
 }
